@@ -2,7 +2,7 @@ import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-export default function LandingPage() {
+export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50/50 flex items-center justify-center">
       {/* Background pattern */}
