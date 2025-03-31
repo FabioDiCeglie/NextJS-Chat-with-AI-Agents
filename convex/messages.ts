@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { withAuth, withErrorHandler } from "@/lib/utils";
 
+// We don't need to check for auth here because we check that in the server action ( chat -> page.tsx )
 export const getMessages = query({
     args: {
         chatId: v.id("chats"),
@@ -33,13 +34,14 @@ export const getLastMessage = query({
     }
 });
 
+// We don't need to check for auth here because we check that in the server action ( route.ts )
 export const createMessageUser = mutation({
     args: {
         chatId: v.id("chats"),
         content: v.string(),
     },
     handler: async (ctx, args) => {
-        return await withAuth(ctx, async (userId: string) => {
+        return await withErrorHandler(async () => {
             return await ctx.db.insert("messages", {
                 chatId: args.chatId,
                 content: args.content.replace(/\n/g, "\\n"),
