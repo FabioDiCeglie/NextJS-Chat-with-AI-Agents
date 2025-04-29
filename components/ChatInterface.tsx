@@ -138,7 +138,8 @@ export default function ChatInterface({
                 });
                 fullResponse += formatTerminalOutput(
                   message.tool,
-                  message.input,
+                  // Stringify input if it's not already a string
+                  typeof message.input === 'string' ? message.input : JSON.stringify(message.input),
                   "Processing..."
                 );
                 setStreamedResponse(fullResponse);
@@ -157,8 +158,10 @@ export default function ChatInterface({
                     fullResponse.substring(0, lastTerminalIndex) +
                     formatTerminalOutput(
                       message.tool,
-                      currentTool.input,
-                      message.output
+                      // Stringify input if it's not already a string
+                      typeof currentTool.input === 'string' ? currentTool.input : JSON.stringify(currentTool.input),
+                      // Stringify output if it's not already a string
+                      typeof message.output === 'string' ? message.output : JSON.stringify(message.output)
                     );
                   setStreamedResponse(fullResponse);
                 }
