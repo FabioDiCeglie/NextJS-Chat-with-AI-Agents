@@ -39,13 +39,14 @@ export const createMessageUser = mutation({
     args: {
         chatId: v.id("chats"),
         content: v.string(),
+        role: v.union(v.literal("user"), v.literal("assistant")),
     },
     handler: async (ctx, args) => {
         return await withErrorHandler(async () => {
             return await ctx.db.insert("messages", {
                 chatId: args.chatId,
                 content: args.content.replace(/\n/g, "\\n"),
-                role: "user",
+                role: args.role ?? 'user',
                 createdAt: Date.now(),
             });
         });

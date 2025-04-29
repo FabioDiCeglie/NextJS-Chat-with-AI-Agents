@@ -4,8 +4,10 @@ import { Id, Doc } from "@/convex/_generated/dataModel";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { ArrowRight } from "lucide-react";
-import { withErrorHandler } from "@/lib/utils";
-import { ChatRequestBody } from "@/lib/types";
+import { createSSEParser, getConvexClient, formatTerminalOutput } from "@/lib/utils";
+import { ChatRequestBody, StreamMessageType } from "@/lib/types";
+import { api } from "@/convex/_generated/api";
+
 interface ChatInterfaceProps {
   chatId: Id<"chats">;
   initialMessages: Doc<"messages">[];
@@ -24,6 +26,19 @@ export default function ChatInterface({
     input: unknown;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const processStream = async (reader: ReadableStreamReader<Uint8Array>, onChunk: (chunk: string) => void) => {
+    try{
+      while(true){
+        // @ts-ignore
+        const { done, value } = await reader.read();
+        if (done) break;
+        onChunk(new TextDecoder().decode(value));
+      }
+    }finally{
+      reader.releaseLock()
+    }
+  }
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -82,6 +97,72 @@ export default function ChatInterface({
       if (!response.body) {
         throw new Error("No response body");
       }
+
+     // -- Handling the stream --
+     const parser = createSSEParser();
+     const reader = response.body.getReader();
+
+     // Process the stream
+     await processStream(reader, async (chunk) => {
+      const messages = parser.parse(chunk);
+      for (const message of messages){
+          switch(message.type){
+            case StreamMessageType.Token:
+            if("token" in message){
+              fullResponse += message.token;
+              setStreamedResponse(fullResponse);
+            }
+            break;
+            case StreamMessageType.ToolStart:
+              if("tool" in message){
+                setCurrentTool({
+                  name: message.tool,
+                  input: message.input,
+                });
+                // @ts-ignore
+                fullResponse += formatTerminalOutput(message.tool, message.input, "Processing...");
+                setStreamedResponse(fullResponse);
+              }
+            break;
+            case StreamMessageType.ToolEnd:
+              if("tool" in message && currentTool){
+                // Replace the "Processing..." with the actual tool output
+                const lastTerminalIndex = fullResponse.lastIndexOf('<div class="bg-[#1e1e1e]">');
+                if(lastTerminalIndex !== -1){
+                  // @ts-ignore
+                  fullResponse = fullResponse.substring(0, lastTerminalIndex) + formatTerminalOutput(message.tool, currentTool.input, message.output);
+                }
+                setStreamedResponse(fullResponse);
+                setCurrentTool(null);
+              }
+            break;
+            case StreamMessageType.Error:
+              if("error" in message){
+                throw new Error(message.error);
+              }
+            break;
+            case StreamMessageType.Done:
+              const assistantMessage: Doc<"messages"> = {
+                _id: `temp_assistant_${Date.now()}`,
+                chatId,
+                content: fullResponse,
+                role: "assistant",
+                createdAt: Date.now(),
+              } as Doc<"messages">;
+
+              const convex = getConvexClient();
+              await convex.mutation(api.messages.createMessageUser, {
+                chatId,
+                content: fullResponse,
+                role: "assistant",
+              })
+
+              setMessages((prev) => [...prev, assistantMessage]);
+              setStreamedResponse("");
+            break;
+          }
+      }
+     })
     } catch (error) {
       // Handle any errors during streaming
       console.error("Error sending message:", error);
@@ -89,13 +170,13 @@ export default function ChatInterface({
       setMessages((prev) =>
         prev.filter((msg) => msg._id !== optimisticUserMessage._id)
       );
-    //   setStreamedResponse(
-    //     formatTerminalOutput(
-    //       "error",
-    //       "Failed to process message",
-    //       error instanceof Error ? error.message : "Unknown error"
-    //     )
-    //   );
+      setStreamedResponse(
+        formatTerminalOutput(
+          "error",
+          "Failed to process message",
+          error instanceof Error ? error.message : "Unknown error"
+        )
+      );
     } finally {
       setIsLoading(false);
     }
