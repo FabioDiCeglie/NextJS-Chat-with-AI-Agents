@@ -4,9 +4,14 @@ import { Id, Doc } from "@/convex/_generated/dataModel";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
 import { ArrowRight } from "lucide-react";
-import { createSSEParser, getConvexClient, formatTerminalOutput } from "@/lib/utils";
+import {
+  createSSEParser,
+  getConvexClient,
+  formatTerminalOutput,
+} from "@/lib/utils";
 import { ChatRequestBody, StreamMessageType } from "@/lib/types";
 import { api } from "@/convex/_generated/api";
+import MessageBubble from "./MessageBubble";
 
 interface ChatInterfaceProps {
   chatId: Id<"chats">;
@@ -27,18 +32,25 @@ export default function ChatInterface({
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const processStream = async (reader: ReadableStreamReader<Uint8Array>, onChunk: (chunk: string) => void) => {
-    try{
-      while(true){
-        // @ts-ignore
+  /**
+   * Processes a ReadableStream from the SSE response.
+   * This function continuously reads chunks of data from the stream until it's done.
+   * Each chunk is decoded from Uint8Array to string and passed to the callback.
+   */
+  const processStream = async (
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    onChunk: (chunk: string) => Promise<void>
+  ) => {
+    try {
+      while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        onChunk(new TextDecoder().decode(value));
+        await onChunk(new TextDecoder().decode(value));
       }
-    }finally{
-      reader.releaseLock()
+    } finally {
+      reader.releaseLock();
     }
-  }
+  };
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -98,50 +110,71 @@ export default function ChatInterface({
         throw new Error("No response body");
       }
 
-     // -- Handling the stream --
-     const parser = createSSEParser();
-     const reader = response.body.getReader();
+      // -- Handling the stream --
+      const parser = createSSEParser();
+      const reader = response.body.getReader();
 
-     // Process the stream
-     await processStream(reader, async (chunk) => {
-      const messages = parser.parse(chunk);
-      for (const message of messages){
-          switch(message.type){
+      // Process the stream
+      await processStream(reader, async (chunk) => {
+        // Parse SSE messages from the chunk
+        const messages = parser.parse(chunk);
+        // Handle each message based on its type
+        for (const message of messages) {
+          switch (message.type) {
             case StreamMessageType.Token:
-            if("token" in message){
-              fullResponse += message.token;
-              setStreamedResponse(fullResponse);
-            }
-            break;
+              // Handle streaming tokens (normal text response)
+              if ("token" in message) {
+                fullResponse += message.token;
+                setStreamedResponse(fullResponse);
+              }
+              break;
+
             case StreamMessageType.ToolStart:
-              if("tool" in message){
+              // Handle start of tool execution (e.g. API calls, file operations)
+              if ("tool" in message) {
                 setCurrentTool({
                   name: message.tool,
                   input: message.input,
                 });
-                // @ts-ignore
-                fullResponse += formatTerminalOutput(message.tool, message.input, "Processing...");
+                fullResponse += formatTerminalOutput(
+                  message.tool,
+                  message.input,
+                  "Processing..."
+                );
                 setStreamedResponse(fullResponse);
               }
-            break;
+              break;
+
             case StreamMessageType.ToolEnd:
-              if("tool" in message && currentTool){
-                // Replace the "Processing..." with the actual tool output
-                const lastTerminalIndex = fullResponse.lastIndexOf('<div class="bg-[#1e1e1e]">');
-                if(lastTerminalIndex !== -1){
-                  // @ts-ignore
-                  fullResponse = fullResponse.substring(0, lastTerminalIndex) + formatTerminalOutput(message.tool, currentTool.input, message.output);
+              // Handle completion of tool execution
+              if ("tool" in message && currentTool) {
+                // Replace the "Processing..." message with actual output
+                const lastTerminalIndex = fullResponse.lastIndexOf(
+                  '<div class="bg-[#1e1e1e]'
+                );
+                if (lastTerminalIndex !== -1) {
+                  fullResponse =
+                    fullResponse.substring(0, lastTerminalIndex) +
+                    formatTerminalOutput(
+                      message.tool,
+                      currentTool.input,
+                      message.output
+                    );
+                  setStreamedResponse(fullResponse);
                 }
-                setStreamedResponse(fullResponse);
                 setCurrentTool(null);
               }
-            break;
+              break;
+
             case StreamMessageType.Error:
-              if("error" in message){
+              // Handle error messages from the stream
+              if ("error" in message) {
                 throw new Error(message.error);
               }
-            break;
+              break;
+
             case StreamMessageType.Done:
+              // Handle completion of the entire response
               const assistantMessage: Doc<"messages"> = {
                 _id: `temp_assistant_${Date.now()}`,
                 chatId,
@@ -150,19 +183,20 @@ export default function ChatInterface({
                 createdAt: Date.now(),
               } as Doc<"messages">;
 
+              // Save the complete message to the database
               const convex = getConvexClient();
               await convex.mutation(api.messages.createMessageUser, {
                 chatId,
                 content: fullResponse,
                 role: "assistant",
-              })
+              });
 
               setMessages((prev) => [...prev, assistantMessage]);
               setStreamedResponse("");
-            break;
+              return;
           }
-      }
-     })
+        }
+      });
     } catch (error) {
       // Handle any errors during streaming
       console.error("Error sending message:", error);
@@ -186,10 +220,33 @@ export default function ChatInterface({
     <main className="flex flex-col h-[calc(100vh-theme(spacing.14))]">
       {/* Messages container */}
       <section className="flex-1 overflow-y-auto bg-gray-50 p-2 md:p-0">
-        <div>
-          {messages.map((message) => (
-            <div key={message._id}>{message.content}</div>
+        <div className="max-w-4xl max-auto p-4 space-y-3">
+          {messages?.map((message: Doc<"messages">) => (
+            <MessageBubble
+              key={message._id}
+              content={message.content}
+              isUser={message.role === "user"}
+            />
           ))}
+
+          {streamedResponse && <MessageBubble content={streamedResponse} />}
+
+          {/* Loading indicator */}
+          {isLoading && !streamedResponse && (
+            <div className="flex justify-start animate-in fade-in-0">
+              <div className="rounded-2xl px-4 py-3 bg-white text-gray-900 rounded-bl-none shadow-sm ring-1 ring-inset ring-gray-200">
+                <div className="flex items-center gap-1.5">
+                  {[0.3, 0.15, 0].map((delay, i) => (
+                    <div
+                      key={i}
+                      className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-bounce"
+                      style={{ animationDelay: `-${delay}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>
