@@ -12,7 +12,7 @@ import {
 import { ChatRequestBody, StreamMessageType } from "@/lib/types";
 import { api } from "@/convex/_generated/api";
 import MessageBubble from "./MessageBubble";
-import { AI_WELCOME_MESSAGE } from "@/constants/systemMessage";
+import WelcomeMessage from "./WelcomeMessage";
 
 interface ChatInterfaceProps {
   chatId: Id<"chats">;
@@ -32,28 +32,6 @@ export default function ChatInterface({
     input: unknown;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  /**
-   * Send initial welcome message if chat is new
-   */
-  useEffect(() => {
-    // Check if initialMessages is empty (indicating a new chat)
-    if (initialMessages.length === 0) {
-      const welcomeMessageContent = AI_WELCOME_MESSAGE;
-
-      const welcomeMessage: Doc<"messages"> = {
-        _id: `temp_welcome_${Date.now()}`,
-        chatId,
-        content: welcomeMessageContent,
-        role: "assistant",
-        createdAt: Date.now(),
-      } as Doc<"messages">;
-
-      setMessages([welcomeMessage]);
-    }
-    // Run only once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   /**
    * Processes a ReadableStream from the SSE response.
@@ -232,6 +210,8 @@ export default function ChatInterface({
       {/* Messages container */}
       <section className="flex-1 overflow-y-auto bg-gray-50 p-2 md:p-0">
         <div className="max-w-4xl max-auto p-4 space-y-3">
+        {messages?.length === 0 && <WelcomeMessage />}
+
           {messages?.map((message: Doc<"messages">) => (
             <MessageBubble
               key={message._id}
