@@ -28,12 +28,6 @@ function sendSSEMessage(
 
 export async function POST(req: Request) {
   try {
-    console.log("--- Vercel Edge Debug ---");
-    console.log("GOOGLE_API_KEY available:", !!process.env.GOOGLE_API_KEY);
-    console.log("WXFLOWS_ENDPOINT:", process.env.WXFLOWS_ENDPOINT);
-    console.log("WXFLOWS_API_KEY available:", !!process.env.WXFLOWS_API_KEY);
-    console.log("--- End Vercel Edge Debug ---");
-    
     const { userId } = await auth();
     if (!userId) {
       return new Response("Unauthorized", { status: 401 });
@@ -58,7 +52,6 @@ export async function POST(req: Request) {
 
     (async () => {
       try {
-        console.log("🔥 Connected");
         await sendSSEMessage(writer, { type: StreamMessageType.Connected });
 
         await convex.mutation(api.messages.createMessageUser, {
