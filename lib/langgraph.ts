@@ -40,7 +40,7 @@ const toolNode = new ToolNode(tools);
 
 const initialiseModel = () => {
   const model = new ChatGoogleGenerativeAI({
-    model: "gemini-1.5-flash",
+    model: "gemini-1.5-pro",
     apiKey: process.env.GOOGLE_API_KEY,
     temperature: 0.7,
     maxOutputTokens: 8192,
