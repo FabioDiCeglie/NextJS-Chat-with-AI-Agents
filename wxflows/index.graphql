@@ -6,6 +6,7 @@ schema
       "google_books/index.graphql"
       "youtube_transcript/index.graphql"
       "math/index.graphql"
+      "curl/index.graphql"
     ]
   ) {
   query: Query

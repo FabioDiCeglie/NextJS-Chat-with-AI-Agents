@@ -114,15 +114,11 @@ export default function ChatInterface({
       const parser = createSSEParser();
       const reader = response.body.getReader();
 
-      // Process the stream
       await processStream(reader, async (chunk) => {
-        // Parse SSE messages from the chunk
         const messages = parser.parse(chunk);
-        // Handle each message based on its type
         for (const message of messages) {
           switch (message.type) {
             case StreamMessageType.Token:
-              // Handle streaming tokens (normal text response)
               if ("token" in message) {
                 fullResponse += message.token;
                 setStreamedResponse(fullResponse);
@@ -130,7 +126,6 @@ export default function ChatInterface({
               break;
 
             case StreamMessageType.ToolStart:
-              // Handle start of tool execution (e.g. API calls, file operations)
               if ("tool" in message) {
                 setCurrentTool({
                   name: message.tool,
@@ -138,7 +133,6 @@ export default function ChatInterface({
                 });
                 fullResponse += formatTerminalOutput(
                   message.tool,
-                  // Stringify input if it's not already a string
                   typeof message.input === 'string' ? message.input : JSON.stringify(message.input),
                   "Processing..."
                 );
@@ -147,9 +141,7 @@ export default function ChatInterface({
               break;
 
             case StreamMessageType.ToolEnd:
-              // Handle completion of tool execution
               if ("tool" in message && currentTool) {
-                // Replace the "Processing..." message with actual output
                 const lastTerminalIndex = fullResponse.lastIndexOf(
                   '<div class="bg-[#1e1e1e]'
                 );
@@ -158,9 +150,7 @@ export default function ChatInterface({
                     fullResponse.substring(0, lastTerminalIndex) +
                     formatTerminalOutput(
                       message.tool,
-                      // Stringify input if it's not already a string
                       typeof currentTool.input === 'string' ? currentTool.input : JSON.stringify(currentTool.input),
-                      // Stringify output if it's not already a string
                       typeof message.output === 'string' ? message.output : JSON.stringify(message.output)
                     );
                   setStreamedResponse(fullResponse);
@@ -170,14 +160,12 @@ export default function ChatInterface({
               break;
 
             case StreamMessageType.Error:
-              // Handle error messages from the stream
               if ("error" in message) {
                 throw new Error(message.error);
               }
               break;
 
             case StreamMessageType.Done:
-              // Handle completion of the entire response
               const assistantMessage: Doc<"messages"> = {
                 _id: `temp_assistant_${Date.now()}`,
                 chatId,
@@ -186,7 +174,6 @@ export default function ChatInterface({
                 createdAt: Date.now(),
               } as Doc<"messages">;
 
-              // Save the complete message to the database
               const convex = getConvexClient();
               await convex.mutation(api.messages.createMessageUser, {
                 chatId,
@@ -201,9 +188,7 @@ export default function ChatInterface({
         }
       });
     } catch (error) {
-      // Handle any errors during streaming
       console.error("Error sending message:", error);
-      // Remove the optimistic user message if there was an error
       setMessages((prev) =>
         prev.filter((msg) => msg._id !== optimisticUserMessage._id)
       );

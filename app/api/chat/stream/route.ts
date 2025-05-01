@@ -50,19 +50,16 @@ export async function POST(req: Request) {
       },
     });
 
-    // Handle the streaming response
     (async () => {
       try {
-        // Send initial connection established message
         await sendSSEMessage(writer, { type: StreamMessageType.Connected });
 
-        // Send user message to Convex
         await convex.mutation(api.messages.createMessageUser, {
           chatId,
           content: newMessage,
           role: "user",
         });
-        // Convert messages to LangChain format
+
         const langChainMessages = [
           ...messages
             .filter((msg) => msg.content && msg.content.trim() !== "")
@@ -75,10 +72,8 @@ export async function POST(req: Request) {
         ];
 
         try {
-          // Create the event stream
           const eventStream = await submitQuestion(langChainMessages, chatId);
 
-          // Process the events
           for await (const event of eventStream) {
             // console.log("🔄 Event:", event.event);
 
@@ -110,7 +105,6 @@ export async function POST(req: Request) {
             }
           }
 
-          // Send completion message without storing the response
           await sendSSEMessage(writer, { type: StreamMessageType.Done });
         } catch (streamError) {
           console.error("Error in event stream:", streamError);
