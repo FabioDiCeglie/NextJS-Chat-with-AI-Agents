@@ -20,7 +20,7 @@ graph LR
     Frontend -- Calls --> NextApi[Next.js API Routes / Server Actions];
     Frontend -- Subscribes for Realtime Updates --> ConvexDB[(Convex Database)];
 
-    NextApi -- Executes --> AILogic[AI Agent Logic (Langchain/wxflows)];
+    NextApi -- Executes --> AILogic[AI Agent Logic -> Langchain/wxflows];
     AILogic -- Uses --> ExternalTools[External Tools/APIs];
     NextApi -- Reads/Writes --> ConvexDB;
 ```
