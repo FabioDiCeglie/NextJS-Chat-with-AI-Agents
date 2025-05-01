@@ -16,12 +16,13 @@ This is a web application built with Next.js, Convex, Langchain, and wxflows, al
 ```mermaid
 graph LR
     User --> Frontend[Next.js Frontend];
-    Frontend -- Interacts --> Backend[Convex Backend];
     Frontend -- Authenticates --> Clerk;
-    Backend -- Runs --> AILogic[AI Agent Logic -> Langchain/wxflows];
+    Frontend -- Calls --> NextApi[Next.js API Routes / Server Actions];
+    Frontend -- Subscribes for Realtime Updates --> ConvexDB[(Convex Database)];
+
+    NextApi -- Executes --> AILogic[AI Agent Logic (Langchain/wxflows)];
     AILogic -- Uses --> ExternalTools[External Tools/APIs];
-    AILogic --> Backend;
-    Backend --> Frontend;
+    NextApi -- Reads/Writes --> ConvexDB;
 ```
 
 ## Getting Started
