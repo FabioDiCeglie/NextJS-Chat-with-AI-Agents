@@ -15,7 +15,7 @@ This is a web application built with Next.js, Convex, Langchain, and wxflows, al
 
 ```mermaid
 graph TD
-    subgraph Frontend (Next.js)
+    subgraph Frontend [Next.js]
         A[Browser/Client] --> B(React Components);
         B -- API Calls --> C(Next.js API Routes / Server Actions);
         B -- Realtime Updates --> D{Convex Client};
@@ -24,7 +24,7 @@ graph TD
         F -- Calls --> G[External APIs / Services];
     end
 
-    subgraph Backend
+    subgraph Backend [Backend]
         H[Clerk] -- Authentication --> C;
         H -- Authentication --> D;
         D -- Database Operations / Functions --> I{Convex Backend};
