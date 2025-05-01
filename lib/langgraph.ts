@@ -62,40 +62,40 @@ const initialiseModel = () => {
   return model;
 };
 
-const addCachingHeaders = (messages: BaseMessage[]): BaseMessage[] => {
-    if (!messages.length) return messages;
+// const addCachingHeaders = (messages: BaseMessage[]): BaseMessage[] => {
+//     if (!messages.length) return messages;
   
-    // Create a copy of messages to avoid mutating the original
-    const cachedMessages = [...messages];
+//     // Create a copy of messages to avoid mutating the original
+//     const cachedMessages = [...messages];
   
-    // Helper to add cache control
-    const addCache = (message: BaseMessage) => {
-      message.content = [
-        {
-          type: "text",
-          text: message.content as string,
-          cache_control: { type: "ephemeral" },
-        },
-      ];
-    };
+//     // Helper to add cache control
+//     const addCache = (message: BaseMessage) => {
+//       message.content = [
+//         {
+//           type: "text",
+//           text: message.content as string,
+//           cache_control: { type: "ephemeral" },
+//         },
+//       ];
+//     };
   
-    // Cache the last message
-    addCache(cachedMessages.at(-1)!);
+//     // Cache the last message
+//     addCache(cachedMessages.at(-1)!);
   
-    // Find and cache the second-to-last human message
-    let humanCount = 0;
-    for (let i = cachedMessages.length - 1; i >= 0; i--) {
-      if (cachedMessages[i] instanceof HumanMessage) {
-        humanCount++;
-      if (humanCount === 2) {
-        addCache(cachedMessages[i]);
-        break;
-      }
-      }
-    }
+//     // Find and cache the second-to-last human message
+//     let humanCount = 0;
+//     for (let i = cachedMessages.length - 1; i >= 0; i--) {
+//       if (cachedMessages[i] instanceof HumanMessage) {
+//         humanCount++;
+//       if (humanCount === 2) {
+//         addCache(cachedMessages[i]);
+//         break;
+//       }
+//       }
+//     }
   
-    return cachedMessages;
-  }
+//     return cachedMessages;
+//   }
   
 
 const shouldContinue = (state: typeof MessagesAnnotation.State) => {
@@ -148,7 +148,8 @@ export const submitQuestion = async (
   messages: BaseMessage[],
   chatId: string
 ) => {
-  const cachedMessages = addCachingHeaders(messages);
+  // use this function for anthropic caching
+  // const cachedMessages = addCachingHeaders(messages);
 
   const workflow = createWorkflow();
 
@@ -158,7 +159,7 @@ export const submitQuestion = async (
   const app = workflow.compile({ checkpointer });
 
   const stream = await app.streamEvents(
-    { messages: cachedMessages },
+    { messages: messages },
     {
       version: "v2",
       configurable: { thread_id: chatId },
