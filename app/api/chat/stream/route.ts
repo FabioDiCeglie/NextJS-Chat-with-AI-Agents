@@ -76,8 +76,6 @@ export async function POST(req: Request) {
           const eventStream = await submitQuestion(langChainMessages, chatId);
 
           for await (const event of eventStream) {
-            // console.log("🔄 Event:", event.event);
-
             if (event.event === "on_chat_model_stream") {
               const token = event.data.chunk;
               if (token) {

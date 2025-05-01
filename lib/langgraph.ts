@@ -36,7 +36,7 @@ const toolClient = new wxflows({
 
 const initialiseModel = () => {
   const model = new ChatGoogleGenerativeAI({
-    model: "gemini-1.5-pro",
+    model: "gemini-1.5-flash",
     apiKey: process.env.GOOGLE_API_KEY,
     temperature: 0.7,
     maxOutputTokens: 8192,
@@ -60,10 +60,10 @@ const initialiseModel = () => {
 
 // const addCachingHeaders = (messages: BaseMessage[]): BaseMessage[] => {
 //     if (!messages.length) return messages;
-  
+
 //     // Create a copy of messages to avoid mutating the original
 //     const cachedMessages = [...messages];
-  
+
 //     // Helper to add cache control
 //     const addCache = (message: BaseMessage) => {
 //       message.content = [
@@ -74,10 +74,10 @@ const initialiseModel = () => {
 //         },
 //       ];
 //     };
-  
+
 //     // Cache the last message
 //     addCache(cachedMessages.at(-1)!);
-  
+
 //     // Find and cache the second-to-last human message
 //     let humanCount = 0;
 //     for (let i = cachedMessages.length - 1; i >= 0; i--) {
@@ -89,10 +89,9 @@ const initialiseModel = () => {
 //       }
 //       }
 //     }
-  
+
 //     return cachedMessages;
 //   }
-  
 
 const shouldContinue = (state: typeof MessagesAnnotation.State) => {
   const messages = state.messages;
@@ -112,35 +111,41 @@ const shouldContinue = (state: typeof MessagesAnnotation.State) => {
 };
 
 const createWorkflow = async () => {
-  const model = initialiseModel();
-  const tools = await toolClient.lcTools;
-  const toolNode = new ToolNode(tools);
-  const bindModel = model.bindTools(tools);
+  try {
+    const model = initialiseModel();
+    const tools = await toolClient.lcTools;
+    const toolNode = new ToolNode(tools);
+    const bindModel = model.bindTools(tools);
 
-  const stateGraph = new StateGraph(MessagesAnnotation)
-    .addNode("agent", async (state) => {
-      const systemContent = SYSTEM_MESSAGE;
+    const stateGraph = new StateGraph(MessagesAnnotation)
+      .addNode("agent", async (state) => {
+        const systemContent = SYSTEM_MESSAGE;
 
-      const promptTemplate = ChatPromptTemplate.fromMessages([
-        new SystemMessage(systemContent, {
-          cache_control: { type: "ephemeral" },
-        }),
-        new MessagesPlaceholder("messages"),
-      ]);
+        const promptTemplate = ChatPromptTemplate.fromMessages([
+          new SystemMessage(systemContent, {
+            cache_control: { type: "ephemeral" },
+          }),
+          new MessagesPlaceholder("messages"),
+        ]);
 
-      const trimmedMessages = await trimmer.invoke(state.messages);
+        const trimmedMessages = await trimmer.invoke(state.messages);
+        const prompt = await promptTemplate.invoke({
+          messages: trimmedMessages,
+        });
 
-      const prompt = await promptTemplate.invoke({ messages: trimmedMessages });
+        const response = await bindModel.invoke(prompt);
+        return { messages: [response] };
+      })
+      .addEdge(START, "agent")
+      .addNode("tools", toolNode)
+      .addConditionalEdges("agent", shouldContinue)
+      .addEdge("tools", "agent");
 
-      const response = await bindModel.invoke(prompt);
-      return { messages: [response] };
-    })
-    .addEdge(START, "agent")
-    .addNode("tools", toolNode)
-    .addConditionalEdges("agent", shouldContinue)
-    .addEdge("tools", "agent");
-
-  return stateGraph;
+    return stateGraph;
+  } catch (error) {
+    console.error("🚨 Error in createWorkflow:", error);
+    throw error;
+  }
 };
 
 export const submitQuestion = async (
@@ -154,7 +159,6 @@ export const submitQuestion = async (
 
   // create a checkpointer to save the state of the conversation
   const checkpointer = new MemorySaver();
-
   const app = workflow.compile({ checkpointer });
 
   const stream = await app.streamEvents(
