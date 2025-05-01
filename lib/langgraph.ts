@@ -34,9 +34,6 @@ const toolClient = new wxflows({
   apikey: process.env.WXFLOWS_API_KEY,
 });
 
-const tools = await toolClient.lcTools;
-const toolNode = new ToolNode(tools);
-
 const initialiseModel = () => {
   const model = new ChatGoogleGenerativeAI({
     model: "gemini-1.5-pro",
@@ -56,7 +53,7 @@ const initialiseModel = () => {
     //     },
     //   },
     // ],
-  }).bindTools(tools);
+  });
 
   return model;
 };
@@ -114,8 +111,11 @@ const shouldContinue = (state: typeof MessagesAnnotation.State) => {
   return END;
 };
 
-const createWorkflow = () => {
+const createWorkflow = async () => {
   const model = initialiseModel();
+  const tools = await toolClient.lcTools;
+  const toolNode = new ToolNode(tools);
+  const bindModel = model.bindTools(tools);
 
   const stateGraph = new StateGraph(MessagesAnnotation)
     .addNode("agent", async (state) => {
@@ -132,7 +132,7 @@ const createWorkflow = () => {
 
       const prompt = await promptTemplate.invoke({ messages: trimmedMessages });
 
-      const response = await model.invoke(prompt);
+      const response = await bindModel.invoke(prompt);
       return { messages: [response] };
     })
     .addEdge(START, "agent")
@@ -150,7 +150,7 @@ export const submitQuestion = async (
   // use this function for anthropic caching
   // const cachedMessages = addCachingHeaders(messages);
 
-  const workflow = createWorkflow();
+  const workflow = await createWorkflow();
 
   // create a checkpointer to save the state of the conversation
   const checkpointer = new MemorySaver();
