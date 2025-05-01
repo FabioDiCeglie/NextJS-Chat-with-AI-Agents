@@ -18,7 +18,7 @@ graph LR
     User --> Frontend[Next.js Frontend];
     Frontend -- Interacts --> Backend[Convex Backend];
     Frontend -- Authenticates --> Clerk;
-    Backend -- Runs --> AILogic[AI Agent Logic (Langchain/wxflows)];
+    Backend -- Runs --> AILogic[AI Agent Logic -> Langchain/wxflows];
     AILogic -- Uses --> ExternalTools[External Tools/APIs];
     AILogic --> Backend;
     Backend --> Frontend;
