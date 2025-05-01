@@ -12,8 +12,6 @@ import {
   SSE_LINE_DELIMITER,
 } from "@/lib/types";
 
-export const runtime = "edge";
-
 function sendSSEMessage(
   writer: WritableStreamDefaultWriter<Uint8Array>,
   data: StreamMessage
