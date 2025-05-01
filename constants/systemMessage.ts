@@ -27,3 +27,5 @@ Tool-specific instructions:
 
    refer to previous messages for context and use them to accurately answer the question
 `;
+
+export const AI_WELCOME_MESSAGE = "Hi there! I'm your AI assistant. I can help you with various tasks using my tools, including:\n1. Getting YouTube video transcripts\n2. Searching Google Books\n3. Getting customers from a REST API (https://introspection.apis.stepzen.com/customers)\n4. Solving math problems\n5. Searching Wikipedia\n\nHow can I assist you today?";
