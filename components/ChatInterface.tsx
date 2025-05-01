@@ -209,7 +209,7 @@ export default function ChatInterface({
     <main className="flex flex-col h-[calc(100vh-theme(spacing.14))]">
       {/* Messages container */}
       <section className="flex-1 overflow-y-auto bg-gray-50 p-2 md:p-0">
-        <div className="max-w-4xl max-auto p-4 space-y-3">
+        <div className="max-auto p-4 space-y-3">
         {messages?.length === 0 && <WelcomeMessage />}
 
           {messages?.map((message: Doc<"messages">) => (
