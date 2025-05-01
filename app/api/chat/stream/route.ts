@@ -2,7 +2,7 @@
 import { api } from "@/convex/_generated/api";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+// import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { getConvexClient } from "@/lib/utils";
 import {
   ChatRequestBody,
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { messages, newMessage, chatId } =
+    const { newMessage, chatId } =
       (await req.json()) as ChatRequestBody;
     const convex = getConvexClient();
 
@@ -52,6 +52,7 @@ export async function POST(req: Request) {
 
     (async () => {
       try {
+
         await sendSSEMessage(writer, { type: StreamMessageType.Connected });
 
         await convex.mutation(api.messages.createMessageUser, {
@@ -60,16 +61,16 @@ export async function POST(req: Request) {
           role: "user",
         });
 
-        const langChainMessages = [
-          ...messages
-            .filter((msg) => msg.content && msg.content.trim() !== "")
-            .map((msg) =>
-              msg.role === "user"
-                ? new HumanMessage(msg.content)
-                : new AIMessage(msg.content)
-            ),
-          new HumanMessage(newMessage),
-        ];
+        // const langChainMessages = [
+        //   ...messages
+        //     .filter((msg) => msg.content && msg.content.trim() !== "")
+        //     .map((msg) =>
+        //       msg.role === "user"
+        //         ? new HumanMessage(msg.content)
+        //         : new AIMessage(msg.content)
+        //     ),
+        //   new HumanMessage(newMessage),
+        // ];
 
         // try {
         //   const eventStream = await submitQuestion(langChainMessages, chatId);
