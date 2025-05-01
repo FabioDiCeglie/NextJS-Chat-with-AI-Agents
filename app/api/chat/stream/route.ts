@@ -1,8 +1,8 @@
-// import { submitQuestion } from "@/lib/langgraph";
+import { submitQuestion } from "@/lib/langgraph";
 import { api } from "@/convex/_generated/api";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-// import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { getConvexClient } from "@/lib/utils";
 import {
   ChatRequestBody,
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { newMessage, chatId } =
+    const { messages, newMessage, chatId } =
       (await req.json()) as ChatRequestBody;
     const convex = getConvexClient();
 
@@ -61,62 +61,62 @@ export async function POST(req: Request) {
           role: "user",
         });
 
-        // const langChainMessages = [
-        //   ...messages
-        //     .filter((msg) => msg.content && msg.content.trim() !== "")
-        //     .map((msg) =>
-        //       msg.role === "user"
-        //         ? new HumanMessage(msg.content)
-        //         : new AIMessage(msg.content)
-        //     ),
-        //   new HumanMessage(newMessage),
-        // ];
+        const langChainMessages = [
+          ...messages
+            .filter((msg) => msg.content && msg.content.trim() !== "")
+            .map((msg) =>
+              msg.role === "user"
+                ? new HumanMessage(msg.content)
+                : new AIMessage(msg.content)
+            ),
+          new HumanMessage(newMessage),
+        ];
 
-        // try {
-        //   const eventStream = await submitQuestion(langChainMessages, chatId);
+        try {
+          const eventStream = await submitQuestion(langChainMessages, chatId);
 
-        //   for await (const event of eventStream) {
-        //     // console.log("🔄 Event:", event.event);
+          for await (const event of eventStream) {
+            // console.log("🔄 Event:", event.event);
 
-        //     if (event.event === "on_chat_model_stream") {
-        //       const token = event.data.chunk;
-        //       if (token) {
-        //         const text = token.content;
-        //         if (text) {
-        //           await sendSSEMessage(writer, {
-        //             type: StreamMessageType.Token,
-        //             token: text,
-        //           });
-        //         }
-        //       }
-        //     } else if (event.event === "on_tool_start") {
-        //       await sendSSEMessage(writer, {
-        //         type: StreamMessageType.ToolStart,
-        //         tool: event.name || "unknown",
-        //         input: event.data.input,
-        //       });
-        //     } else if (event.event === "on_tool_end") {
-        //       const toolMessage = new ToolMessage(event.data.output);
+            if (event.event === "on_chat_model_stream") {
+              const token = event.data.chunk;
+              if (token) {
+                const text = token.content;
+                if (text) {
+                  await sendSSEMessage(writer, {
+                    type: StreamMessageType.Token,
+                    token: text,
+                  });
+                }
+              }
+            } else if (event.event === "on_tool_start") {
+              await sendSSEMessage(writer, {
+                type: StreamMessageType.ToolStart,
+                tool: event.name || "unknown",
+                input: event.data.input,
+              });
+            } else if (event.event === "on_tool_end") {
+              const toolMessage = new ToolMessage(event.data.output);
 
-        //       await sendSSEMessage(writer, {
-        //         type: StreamMessageType.ToolEnd,
-        //         tool: toolMessage.lc_kwargs.name || "unknown",
-        //         output: event.data.output,
-        //       });
-        //     }
-        //   }
+              await sendSSEMessage(writer, {
+                type: StreamMessageType.ToolEnd,
+                tool: toolMessage.lc_kwargs.name || "unknown",
+                output: event.data.output,
+              });
+            }
+          }
 
-        //   await sendSSEMessage(writer, { type: StreamMessageType.Done });
-        // } catch (streamError) {
-        //   console.error("Error in event stream:", streamError);
-        //    await sendSSEMessage(writer, {
-        //      type: StreamMessageType.Error,
-        //      error:
-        //        streamError instanceof Error
-        //          ? streamError.message
-        //          : "Stream processing failed",
-        //    });
-        // }
+          await sendSSEMessage(writer, { type: StreamMessageType.Done });
+        } catch (streamError) {
+          console.error("Error in event stream:", streamError);
+           await sendSSEMessage(writer, {
+             type: StreamMessageType.Error,
+             error:
+               streamError instanceof Error
+                 ? streamError.message
+                 : "Stream processing failed",
+           });
+        }
       } catch (error) {
           console.error("Error in stream:", error);
           await sendSSEMessage(writer, {
