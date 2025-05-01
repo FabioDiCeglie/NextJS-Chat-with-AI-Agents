@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Agent Application
+
+This is a web application built with Next.js, Convex, Langchain, and wxflows, allowing users to interact with an AI agent that can utilize various tools.
+
+## Tech Stack
+
+*   **Frontend:** Next.js 15, React 19, TypeScript, Tailwind CSS, Shadcn/UI (via `components.json`)
+*   **Backend:** Convex (Realtime Database & Functions)
+*   **Authentication:** Clerk
+*   **AI / LLM:** Langchain.js, Langgraph.js, Google Gemini
+*   **Agent Tools:** wxflows (defining tools like Web Search, Wikipedia, YouTube Transcript etc.)
+*   **Package Manager:** pnpm
+
+## Project Structure Overview
+
+```mermaid
+graph TD
+    subgraph Frontend (Next.js)
+        A[Browser/Client] --> B(React Components);
+        B -- API Calls --> C(Next.js API Routes / Server Actions);
+        B -- Realtime Updates --> D{Convex Client};
+        C -- Calls --> E{Langchain/Langgraph};
+        E -- Uses --> F(wxflows Tools);
+        F -- Calls --> G[External APIs / Services];
+    end
+
+    subgraph Backend
+        H[Clerk] -- Authentication --> C;
+        H -- Authentication --> D;
+        D -- Database Operations / Functions --> I{Convex Backend};
+        I -- Stores --> J[(Convex Database)];
+    end
+
+    A --> H;
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   Node.js (v20 or later recommended)
+*   pnpm (`npm install -g pnpm`)
+*   Access keys/credentials for:
+    *   Clerk (Publishable Key, Secret Key)
+    *   Convex (Deployment URL, Admin Key)
+    *   Google AI / Gemini (API Key)
+    *   wxflows (if required by the specific SDK/tools)
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone <your-repo-url>
+    cd ai-agent-app
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    pnpm install
+    ```
+
+3.  **Set up environment variables:**
+    Create a `.env.local` file in the root directory and add your credentials. Refer to Clerk, Convex, and Google AI documentation for the specific variable names needed. You'll likely need:
+
+    ```env
+    # Clerk
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_***********
+    CLERK_SECRET_KEY=sk_***********
+
+    # Convex
+    NEXT_PUBLIC_CONVEX_URL=https://************.convex.cloud
+    CONVEX_DEPLOYMENT= # Optional: specify a deployment name if needed
+
+    # Google AI
+    GOOGLE_API_KEY=AIza***********
+
+    # wxflows (Example - check wxflows SDK docs for actual variables)
+    # WXFLOWS_API_KEY=...
+    # WXFLOWS_ENDPOINT=...
+    ```
+    *Note: Add `.env.local` to your `.gitignore` file if it's not already there.*
+
+4.  **Set up Convex backend:**
+    Push the schema and functions to your Convex deployment. You might need the Convex CLI.
+    ```bash
+    # Authenticate with Convex (if needed)
+    # npx convex login
+
+    # Deploy functions and schema (requires CONVEX_DEPLOYMENT or interactive selection)
+    pnpm convex deploy
+    ```
+    Alternatively, run the Convex dev server alongside the Next.js app:
+    ```bash
+    pnpm convex dev
+    ```
+    This command watches for changes in your `convex/` directory and pushes them automatically. It requires the `CONVEX_ADMIN_KEY` in your environment.
+
+### Running the Development Server
+
+1.  **Start the Next.js development server:**
+    ```bash
+    pnpm dev
+    ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
