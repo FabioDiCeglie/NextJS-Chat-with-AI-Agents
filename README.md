@@ -14,24 +14,14 @@ This is a web application built with Next.js, Convex, Langchain, and wxflows, al
 ## Project Structure Overview
 
 ```mermaid
-graph TD
-    subgraph Frontend [Next.js]
-        A[Browser/Client] --> B(React Components);
-        B -- API Calls --> C(Next.js API Routes / Server Actions);
-        B -- Realtime Updates --> D{Convex Client};
-        C -- Calls --> E{Langchain/Langgraph};
-        E -- Uses --> F(wxflows Tools);
-        F -- Calls --> G[External APIs / Services];
-    end
-
-    subgraph Backend [Backend]
-        H[Clerk] -- Authentication --> C;
-        H -- Authentication --> D;
-        D -- Database Operations / Functions --> I{Convex Backend};
-        I -- Stores --> J[(Convex Database)];
-    end
-
-    A --> H;
+graph LR
+    User --> Frontend[Next.js Frontend];
+    Frontend -- Interacts --> Backend[Convex Backend];
+    Frontend -- Authenticates --> Clerk;
+    Backend -- Runs --> AILogic[AI Agent Logic (Langchain/wxflows)];
+    AILogic -- Uses --> ExternalTools[External Tools/APIs];
+    AILogic --> Backend;
+    Backend --> Frontend;
 ```
 
 ## Getting Started
