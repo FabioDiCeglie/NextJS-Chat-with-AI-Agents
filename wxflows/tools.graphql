@@ -76,7 +76,7 @@ extend type Query {
         { name: "name", const: "customer_data" }
         {
           name: "description"
-          const: "Retrieves all customer information, including addresses and order history. Returns a ORDERED LIST of customers with details like name, email, address, and past orders with shipping information. This tool does not accept specific customer IDs; it returns data for all customers."
+          const: "Retrieve customer information including their address and order history. Returns customer details like name, email, address, and past orders with shipping information. To search for customer with id: 1, use the curl url followed by /1 i.e. https://api.example.com/customers/1"
         }
         { name: "fields", const: "myQuery" }
       ]

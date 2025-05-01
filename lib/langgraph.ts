@@ -40,11 +40,23 @@ const toolNode = new ToolNode(tools);
 
 const initialiseModel = () => {
   const model = new ChatGoogleGenerativeAI({
-    model: "gemini-1.5-pro",
+    model: "gemini-2.0-flash-exp",
     apiKey: process.env.GOOGLE_API_KEY,
     temperature: 0.7,
     maxOutputTokens: 8192,
     streaming: true,
+    // check the usage of the tokens and caching
+    // callbacks: [
+    //   {
+    //     handleLLMEnd: async (output) => {
+    //       console.log("🤖 End LLM call - Google Output:", output.llmOutput);
+    //       const usage = output.llmOutput?.tokenUsage;
+    //       if (usage) {
+    //         console.log("📊 Token Usage:", usage);
+    //       }
+    //     },
+    //   },
+    // ],
   }).bindTools(tools);
 
   return model;
