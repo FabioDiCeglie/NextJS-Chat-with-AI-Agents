@@ -5,13 +5,10 @@ import { api } from "@/convex/_generated/api";
 import { getConvexClient } from "@/lib/utils";
 import ChatInterface from "@/components/ChatInterface";
 
-interface ChatPageProps {
-    params: {
-      chatId: Id<"chats">;
-    };
-  }
+type Params = Promise<{ chatId: Id<"chats"> }>;
 
-export default async function ChatPage({ params }: ChatPageProps) {
+
+export default async function ChatPage({ params }: { params: Params }) {
   const { chatId } = await params;
 
   // Get user authentication
@@ -39,7 +36,7 @@ export default async function ChatPage({ params }: ChatPageProps) {
     }
 
     // Get messages
-    const initialMessages = await convex.query(api.messages.getMessages, { chatId });
+    const initialMessages = await convex.query(api.messages.getMessages, { chatId: chatId });
 
     return (
       <div className="flex-1 overflow-hidden">
